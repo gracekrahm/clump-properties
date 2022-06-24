@@ -1,0 +1,95 @@
+import csv
+import numpy as np
+import matplotlib as mpl
+#mpl.use('tkagg')
+import matplotlib.pyplot as plt
+import matplotlib.patches
+from astropy.io import fits
+from astropy.stats import mad_std
+from astropy import stats
+from astropy import units as u
+from scipy.optimize import curve_fit
+import h5py
+from astrodendro import Dendrogram
+import peakutils.peak
+import datetime
+import multiprocessing as mp
+import sys
+
+
+import warnings
+warnings.simplefilter('ignore')
+
+
+def pix_to_pc(pix, dpc, arcsec_per_pix):
+        return  pix*(arcsec_per_pix/206265)*dpc
+
+
+def operations(clumps, rms_K, nsig, dpc, COtemp, ncl, velocity_range, arcsec_per_pix, brad):
+        #isolate & mask clump
+        current_clump = np.where(clumps==ncl, COtemp, np.nan)
+        mask3d = np.where(current_clump > nsig*rms_K, 1., np.nan)
+        #Calculate moments 0 and 8 and mask below nsig
+        mom0 = np.nansum(current_clump, axis=0) #total intensity
+        mom8 = np.nanmax(current_clump, axis=0) #peak intensity
+        mask2d = np.where(mom8 > nsig*rms_K, 1., np.nan)
+
+        #find maximum intensity
+        maxpix = np.nanmax(mom8)
+        maxpix_location = np.unravel_index(np.nanargmax(current_clump), (current_clump.shape))
+
+        #remask moments to 0 instead of nan
+        mask2dzero = np.where(mom0>0, mom0, 0.0)
+        full_contour_mask = np.where(mom0 >nsig*rms_K, 1., 0.) #binary mask
+        wholemapmom0 = np.nansum(COtemp, axis=0)
+
+        ax = plt.subplots()
+        plt.imshow(wholemapmom0, origin='lower', cmap='Greys', vmax=np.min([np.max([5.*np.nanmax(mom0), 8*rms_K]), np.nanmax(wholemapmom0)]), vmin=0)
+        plt.colorbar()
+        cont = plt.contour(full_contour_mask, linewidths=0.5, label='half power contour') #half-power contour
+
+        #contour lines
+        half_contour = plt.contour(mask2dzero,[0.5*np.nanmax(mask2dzero)])
+        full_contour = plt.contour(mask2dzero,[np.nanmax(mask2dzero)])
+        annx=maxpix_location[2]
+        anny = maxpix_location[1]
+        print("x,y:", annx, anny, weight='bold')
+        plt.annotate(ncl, (annx, anny), color='red')
+        plt.show()
+if __name__ == "__main__":
+
+        #INPUTS
+        cubefile= 'ab6low.fits'
+        clumpfile= 'Ant_B6low_FULL_13CO2_1_Robust2.0.cube.clumps.4sig500npix.fits'
+        nsig=5 #typically use 5sigma in maps but maybe use sigma used for qc
+        velocity_range = np.arange(1300, 1800, 5) #all velocity values in km/s
+        dpc = 22*10**6 #distance in pc
+        label = '13CO21'
+        how_save = 'separate'
+
+
+        #HEADER DATA
+        clumps = fits.getdata(clumpfile)
+        ncl_total = np.nanmax(clumps)
+        COdata = fits.getdata(cubefile)
+        COdata_header = fits.getheader(cubefile)
+        rms = stats.mad_std(COdata[~np.isnan(COdata)])
+        bmaj = COdata_header['bmaj']*3600 #converted to arcsec
+        bmin = COdata_header['bmin']*3600 #converted to arcsec
+        freq=COdata_header['CRVAL3']*(10**(-9)) #converted to GHz
+        rms_K = 1.222 * 10**3 * (rms * 1000) / (freq**2 * bmin * bmaj)
+        pix_per_beam = 1.133*COdata_header['bmaj']*COdata_header['bmin']/(abs(COdata_header['cdelt1']*COdata_header['cdelt2']))
+        arcsec_per_beam = COdata_header['CDELT2']*3600*pix_per_beam
+        arcsec_per_pix = COdata_header['CDELT2']*3600
+        brad = np.sqrt(bmaj*bmin)/206265*dpc
+        print("rms, rmsk:", rms, rms_K)
+        print("freq:", freq)
+        COtemp = 1.222 * 10**3 * (COdata * 1000) / (freq**2 * bmin * bmaj)
+        for ncl in range(1,4):
+#	for ncl in range(120, ncl_total+1):
+#	for ncl in np.array([ncl_total]):
+                print(ncl)
+                props=operations(clumps, rms_K, nsig, dpc, COtemp, ncl, velocity_range, arcsec_per_pix, brad)
+                props_array.append(props)
+        plt.show()
+
