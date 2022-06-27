@@ -65,7 +65,7 @@ def column_density_13(t12, t13, freq13, ncl):
 	c = 2.998*10**8*ms
         #assume 12CO(2-1) is optically thick and use firecracker eqn 2 to find tex
 	tex = tul_12/np.log((tul_12.value/t12)+1)
-	print("tex max", np.nanmax(tex))
+	print("tex max, tex mean", np.nanmax(tex), np.nanmean(tex))
 
         #assume 13CO(2-1) is optically thin and use eqn 2 to calculate its optical depth
 	tau_13 = -np.log(1-(t13/tul_13.value)*(((1/(np.exp(tul_13/tex)-1))-(1/(np.exp(tul_13/tcmb)-1)))**(-1)))
@@ -80,8 +80,14 @@ def column_density_13(t12, t13, freq13, ncl):
 ##	N_13 = ((8*np.pi*nu_naught**2)/(Aul*gu*c**2)) * Q/(1-np.exp(-tul_13/tex)) * tau_13*vel_disp*np.sqrt(np.pi)*2*nu_naught/c
 ##	N_13 = (2.6*10**14)*tex.value * (tau_13*vel_disp.value*np.sqrt(np.pi)*2*nu_naught.value/c.value) / (1-np.exp(-5.3/tex.value)) 
 #	N_13 = (4*(np.pi**(3/2))*(freq13**3)/((c**3)*Aul*np.sqrt(np.log(2))*(np.exp(tul_13/tex)-1))) * tau_13*2.35482004503*vel_disp * Q/gu
-#probably more accurate	N_13 = (8*np.pi*Q*2.35482004503*vel_disp*np.sqrt(np.pi/(4*np.log(2)))*np.exp(tul_13/tex)*tau_13*nu_naught**3) / (Aul*gu*(np.exp(15.9/tex.value)-1)*c**3) 
-	print("n units", N_13.unit)
+#	N_13 = (8*np.pi*Q*2.35482004503*vel_disp*np.sqrt(np.pi/(4*np.log(2)))*np.exp(tul_13/tex)*tau_13*nu_naught**3) / (Aul*gu*(np.exp(15.9/tex.value)-1)*c**3) #most accurate but gives inf
+	mom0n = np.nansum(N_13, axis=0)
+#	ax = plt.subplot(111)
+#	plt.imshow(mom0n, origin='lower')
+#	plt.colorbar()
+#	plt.title("density")
+#	plt.show()
+#	print("n units", N_13.unit)
 	N_13 = (N_13.value)/((u.m)**2)
 	
 	print("n max, n shape", np.nanmax(N_13), N_13.shape)
@@ -97,9 +103,9 @@ def calc_mass(N_13, pix_area, err13CO, sigv, R):
 	total_surface_density = (mH2*1.3*N_13*(2.0*10**6))
 #	np.set_printoptions(threshold=sys.maxsize)
 #	print(total_surface_density)
-	print("total surface density(m^-2):", np.nanmax(total_surface_density), total_surface_density.shape)
+	print("total surface density(m^-2) max, sum, and mean:", np.nanmax(total_surface_density), np.nansum(total_surface_density), np.nanmean(total_surface_density))
 	#convert from cm^-2 ro pc^-2
-
+	
 #	density_pc = total_surface_density.to(u.kg/(u.parsec**2))
 #	print("density pc", np.nanmax(density_pc))	
 	#density_pc = total_surface_density	
@@ -121,7 +127,7 @@ def calc_mass(N_13, pix_area, err13CO, sigv, R):
 	alphavir = 5*(sigv**2)*R/(G*total_mass)
 	print('alphavir:', alphavir)
 	alphavirtest = 5*((sigv/10)**2)*R/(G*total_mass)
-	print('av test', alphavirtest)
+#	print('av test', alphavirtest)
 	# i have no idea what molly's script means tbh alphavir_error = 
 	
 	total_density_list.append(np.nanmax(total_surface_density.value))
@@ -220,7 +226,7 @@ if __name__ == "__main__":
 
 		
 
-	for ncl in range(1,3):
+	for ncl in range(1,2):
 		print(ncl)
 		ncl_list.append(ncl)
 		t12 = get_clumps(ncl, COtemp12, COtemp13, nsig, rms_K12, rms_K13)[0]#*Kkms
