@@ -1,4 +1,4 @@
-ncl,Galactic longitude of the emission peak,Galactic latatude of the emission peak,Local standard of rest velocity of the emission peak,The rms dispersion in l,The rms dispersion in b,R,velocity dispersion,max temp,min temp,CO lum,mass,alphavir,f num
+ncl,Galactic longitude of the emission peak,Galactic latatude of the emission peak,Local standard of rest velocity of the emission peak,The rms dispersion in l,The rms dispersion in b,S,velocity dispersion,max temp,min temp,CO lum,mass,alphavir,f num
 1,-0.784,-0.094,-141,0.056,0.042,12.4,10.4,12.8,5,3.90E+04,2.70E+06,2.60E-03,
 2,-0.784,-0.047,-13,0.057,0.072,17.3,14.5,11.7,5,2.30E+05,7.30E+06,1.30E-02,D
 3,-0.784,0.179,15,0.01,0.017,3.8,13,10.2,5,1.70E+04,1.30E+06,2.10E-03,D
